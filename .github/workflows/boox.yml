@@ -1,0 +1,56 @@
+name: BOOX Prototype
+
+on:
+  push:
+    branches:
+      - 'boox*'
+  workflow_dispatch:
+
+concurrency:
+  group: boox-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  WMKB_ENABLE_PLAY_STORE: "false"
+  WMKB_ENABLE_GMS: "false"
+  WMKB_ENABLE_ONYX_PEN: "true"
+
+jobs:
+  assemble-boox:
+    name: Assemble ${{ matrix.build }} en debug
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { build: boox-fdroid, fdroid: 'true' }
+          - { build: boox, fdroid: 'false' }
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-read-only: false
+
+      - name: Assemble
+        run: >-
+          ./gradlew assembleEnDebug
+          -Pwmkb.enableOnyxPen=true
+          -Pwmkb.enableFdroid=${{ matrix.fdroid }}
+          --build-cache
+          --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: apk-${{ matrix.build }}-en-debug
+          path: app/build/outputs/apk/en/debug/*.apk
+          retention-days: 7

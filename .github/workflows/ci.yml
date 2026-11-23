@@ -69,13 +69,13 @@ jobs:
           path: '**/build/reports/tests/'
           retention-days: 7
 
-  # Three jobs on separate runners at the same time. The English build is here
-  # to prove the localeFilters path still packages, which nothing else would
-  # catch before a release was already being cut. The F-Droid one compiles
-  # with -Pwmkb.enableFdroid=true, which swaps in the src/nogoogle stand-ins
-  # for the ML Kit code and drops Google's SDKs: the only build that compiles
-  # them, so the only place a broken stand-in shows up before F-Droid's own
-  # build fails.
+  # Jobs on separate runners at the same time. The English build is here to
+  # prove the localeFilters path still packages, which nothing else would catch
+  # before a release was already being cut. The F-Droid one compiles with
+  # -Pwmkb.enableFdroid=true, which swaps in the src/nogoogle stand-ins for the
+  # ML Kit code and drops Google's SDKs. The BOOX prototypes compile the
+  # otherwise-isolated src/onyx raw-pen backend in both channel configurations
+  # and upload sideloadable APKs for comparing recognition on the device.
   assemble:
     name: Assemble ${{ matrix.build }} ${{ matrix.language }} debug
     runs-on: ubuntu-latest
@@ -87,6 +87,8 @@ jobs:
           - { build: standard, language: intl }
           - { build: standard, language: en }
           - { build: fdroid, language: intl }
+          - { build: boox, language: en }
+          - { build: boox-fdroid, language: en }
     steps:
       - uses: actions/checkout@v7
 
@@ -110,6 +112,8 @@ jobs:
           language='${{ matrix.language }}'
           flags=()
           [ '${{ matrix.build }}' = fdroid ] && flags+=(-Pwmkb.enableFdroid=true)
+          [[ '${{ matrix.build }}' = boox* ]] && flags+=(-Pwmkb.enableOnyxPen=true)
+          [ '${{ matrix.build }}' = boox-fdroid ] && flags+=(-Pwmkb.enableFdroid=true)
           ./gradlew "assemble${language^}Debug" "${flags[@]}" --stacktrace
 
       - name: Upload APK
