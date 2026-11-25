@@ -1,0 +1,72 @@
+name: BOOX release test
+
+# Temporary device-verification workflow. Delete it after the R8-built BOOX APK
+# has been tested on the Note Max. Unlike the release job, this needs no stored
+# secrets: each run signs with a fresh disposable key, so the APK may need a
+# fresh installation rather than an update over an existing WM Keyboard.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: boox-release-test-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx8g -Dorg.gradle.daemon=false
+
+jobs:
+  assemble:
+    name: Assemble BOOX English release
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Create a disposable signing key
+        run: |
+          keytool -genkeypair \
+            -keystore boox-release-test.keystore \
+            -storepass test-only \
+            -keypass test-only \
+            -alias boox-test \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 1 \
+            -dname "CN=WM Keyboard CI test, OU=Test, O=WM Keyboard, C=US"
+
+      - name: Build the R8-shrunk BOOX APK
+        env:
+          RELEASE_STORE_FILE: boox-release-test.keystore
+          RELEASE_STORE_PASSWORD: test-only
+          RELEASE_KEY_ALIAS: boox-test
+          RELEASE_KEY_PASSWORD: test-only
+          WMKB_ENABLE_PLAY_STORE: 'false'
+          WMKB_ENABLE_GMS: 'true'
+          WMKB_SPLIT_APKS: 'true'
+          WMKB_KEYMAN_LAYOUT_PACK: 'true'
+        run: |
+          ./gradlew assembleEnRelease -Pwmkb.enableOnyxPen=true \
+            -Pkotlin.daemon.jvmargs=-Xmx4g --stacktrace
+
+      - name: Wipe the disposable key
+        if: always()
+        run: rm -f boox-release-test.keystore
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: apk-boox-en-release-test
+          path: app/build/outputs/apk/en/release/app-en-arm64-v8a-release.apk
+          if-no-files-found: error
+          retention-days: 7

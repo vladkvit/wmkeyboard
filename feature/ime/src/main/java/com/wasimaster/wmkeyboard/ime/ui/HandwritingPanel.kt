@@ -57,6 +57,7 @@ import com.wasimaster.wmkeyboard.core.handwriting.HandwritingModels
 import com.wasimaster.wmkeyboard.core.handwriting.HwPoint
 import com.wasimaster.wmkeyboard.core.handwriting.HwStroke
 import com.wasimaster.wmkeyboard.core.script.LanguageRegistry
+import com.wasimaster.wmkeyboard.core.settings.InkFade
 import com.wasimaster.wmkeyboard.core.theme.FrostSurface
 import com.wasimaster.wmkeyboard.ime.HandwritingStatus
 import com.wasimaster.wmkeyboard.ime.HandwritingUi
@@ -535,7 +536,7 @@ private fun ComposeHandwritingInk(
     showHint: Boolean,
     penColor: Color,
     penWidthDp: Float,
-    fade: Boolean,
+    fade: InkFade,
 ) {
     val kb = LocalKbTheme.current
     val dissolve = rememberInkDissolve(hw)
