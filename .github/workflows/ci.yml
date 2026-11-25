@@ -123,10 +123,11 @@ jobs:
           retention-days: 7
 
   # TEMPORARY device-verification job, on the release-test branch only. It
-  # checks the actual R8 shrinking path and signs with a fresh key per run,
-  # so the APK may need a fresh installation. Delete after testing on BOOX.
+  # builds release with and without R8, signing both with the same fresh key
+  # per run so they can replace one another on the device. Delete after testing
+  # on BOOX.
   boox-release-test:
-    name: Assemble BOOX English release test
+    name: Assemble BOOX English release modes
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -153,7 +154,7 @@ jobs:
             -validity 1 \
             -dname "CN=WM Keyboard CI test, OU=Test, O=WM Keyboard, C=US"
 
-      - name: Build the R8-shrunk BOOX APK
+      - name: Build the BOOX fast and R8-shrunk release APKs
         env:
           RELEASE_STORE_FILE: boox-release-test.keystore
           RELEASE_STORE_PASSWORD: test-only
@@ -164,7 +165,7 @@ jobs:
           WMKB_SPLIT_APKS: 'true'
           WMKB_KEYMAN_LAYOUT_PACK: 'true'
         run: |
-          ./gradlew assembleEnRelease -Pwmkb.enableOnyxPen=true \
+          ./gradlew assembleEnFast assembleEnRelease -Pwmkb.enableOnyxPen=true \
             -Pkotlin.daemon.jvmargs=-Xmx4g --stacktrace
 
       - name: Wipe the disposable key
@@ -173,8 +174,17 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
+          name: apk-boox-en-fast-test
+          path: app/build/outputs/apk/en/fast/app-en-arm64-v8a-fast.apk
+          if-no-files-found: error
+          retention-days: 7
+
+      - uses: actions/upload-artifact@v7
+        with:
           name: apk-boox-en-release-test
-          path: app/build/outputs/apk/en/release/app-en-arm64-v8a-release.apk
+          path: |
+            app/build/outputs/apk/en/release/app-en-arm64-v8a-release.apk
+            app/build/outputs/mapping/enRelease/mapping.txt
           if-no-files-found: error
           retention-days: 7
 
