@@ -164,8 +164,12 @@ jobs:
           WMKB_ENABLE_GMS: 'true'
           WMKB_SPLIT_APKS: 'true'
           WMKB_KEYMAN_LAYOUT_PACK: 'true'
+        # One variant at a time: compiling both task graphs together makes the
+        # Kotlin compiler exceed the runner's memory limit.
         run: |
-          ./gradlew assembleEnFast assembleEnRelease -Pwmkb.enableOnyxPen=true \
+          ./gradlew assembleEnRelease -Pwmkb.enableOnyxPen=true \
+            -Pkotlin.daemon.jvmargs=-Xmx4g --stacktrace
+          ./gradlew assembleEnFast -Pwmkb.enableOnyxPen=true \
             -Pkotlin.daemon.jvmargs=-Xmx4g --stacktrace
 
       - name: Wipe the disposable key
